@@ -47,14 +47,26 @@ cp env.example .env.local
 
 ### Environment Configuration
 
-Add the following to your `.env.local`:
+Create a `.env.local` file with the following variables:
 
 ```env
 NEXT_PUBLIC_CHAIN_ID=11155111
-NEXT_PUBLIC_RPC_URL=https://sepolia.infura.io/v3/b18fb7e6ca7045ac83c41157ab93f990
-NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID=2ec9743d0d0cd7fb94dee1a7e6d33475
-NEXT_PUBLIC_INFURA_API_KEY=b18fb7e6ca7045ac83c41157ab93f990
+NEXT_PUBLIC_RPC_URL=https://sepolia.infura.io/v3/YOUR_INFURA_PROJECT_ID
+NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID=YOUR_WALLET_CONNECT_PROJECT_ID
+NEXT_PUBLIC_INFURA_API_KEY=YOUR_INFURA_API_KEY
 ```
+
+#### Getting API Keys
+
+1. **Infura API Key**:
+   - Visit [Infura](https://infura.io/)
+   - Create an account and new project
+   - Copy your project ID
+
+2. **WalletConnect Project ID**:
+   - Visit [WalletConnect Cloud](https://cloud.walletconnect.com/)
+   - Create a new project
+   - Copy your project ID
 
 ### Development
 
