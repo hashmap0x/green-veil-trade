@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Shield, TrendingUp, Leaf, Loader2 } from "lucide-react";
+import { fheEncryption, smartContract } from "@/lib/fhe";
+import { useAccount } from "wagmi";
 
 const TradingInterface = () => {
   const [showPrice, setShowPrice] = useState(false);
@@ -14,19 +16,21 @@ const TradingInterface = () => {
   const [creditType, setCreditType] = useState("Carbon Offset Credits");
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{ amount?: string; creditType?: string }>({});
+  const [transactionHash, setTransactionHash] = useState<string>("");
   const { toast } = useToast();
+  const { isConnected } = useAccount();
 
   const validateForm = () => {
     const newErrors: { amount?: string; creditType?: string } = {};
     
     if (!amount || parseFloat(amount) <= 0) {
-      newErrors.amount = "请输入有效的数量";
+      newErrors.amount = "Please enter a valid amount";
     }
     if (parseFloat(amount) > 10000) {
-      newErrors.amount = "单次交易不能超过10,000吨";
+      newErrors.amount = "Single trade cannot exceed 10,000 tons";
     }
     if (!creditType) {
-      newErrors.creditType = "请选择信用类型";
+      newErrors.creditType = "Please select credit type";
     }
     
     setErrors(newErrors);
@@ -35,26 +39,50 @@ const TradingInterface = () => {
 
   const handlePlaceOrder = async () => {
     if (!validateForm()) return;
+    if (!isConnected) {
+      toast({
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet to place orders",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setIsLoading(true);
     
     try {
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Encrypt sensitive data using FHE
+      const encryptedData = await fheEncryption.encryptSensitiveData({
+        amount: parseFloat(amount),
+        price: parseFloat(estimatedPrice),
+        creditType: creditType,
+        vintage: new Date().getFullYear()
+      });
+
+      // Execute encrypted trade on blockchain
+      const txHash = await smartContract.executeEncryptedTrade(
+        `credit_${Date.now()}`,
+        encryptedData.encryptedAmount,
+        encryptedData.encryptedPrice,
+        encryptedData.proof
+      );
+
+      setTransactionHash(txHash);
       
       toast({
-        title: "订单提交成功",
-        description: `${tradeType === "buy" ? "买入" : "卖出"}订单已提交，等待匹配...`,
+        title: "Encrypted Order Submitted Successfully",
+        description: `${tradeType === "buy" ? "Buy" : "Sell"} order encrypted and submitted to blockchain. Transaction: ${txHash.slice(0, 10)}...`,
       });
       
-      // 清空表单
+      // Clear form
       setAmount("");
       setErrors({});
       
     } catch (error) {
+      console.error('Order submission error:', error);
       toast({
-        title: "提交失败",
-        description: "网络错误，请重试",
+        title: "Submission Failed",
+        description: "Failed to encrypt and submit order. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -125,7 +153,7 @@ const TradingInterface = () => {
                 setAmount(e.target.value);
                 if (errors.amount) setErrors(prev => ({ ...prev, amount: undefined }));
               }}
-              placeholder="输入数量"
+              placeholder="Enter amount"
               className={`${errors.amount ? "border-destructive" : "border-primary/20"}`}
               min="0"
               max="10000"
@@ -156,40 +184,56 @@ const TradingInterface = () => {
             </p>
           </div>
 
+          {transactionHash && (
+            <div className="p-3 bg-muted/50 rounded-lg border border-primary/10">
+              <div className="flex items-center gap-2 mb-2">
+                <Shield className="w-4 h-4 text-earth-green" />
+                <span className="text-sm font-medium text-foreground">Transaction Hash</span>
+              </div>
+              <div className="text-xs font-mono text-muted-foreground break-all">
+                {transactionHash}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Order encrypted and submitted to blockchain
+              </p>
+            </div>
+          )}
+
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button 
                 className="w-full bg-gradient-earth text-primary-foreground hover:opacity-90 transition-opacity shadow-eco"
-                disabled={!amount || parseFloat(amount) <= 0 || isLoading}
+                disabled={!amount || parseFloat(amount) <= 0 || isLoading || !isConnected}
               >
                 {isLoading ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
                   <Leaf className="w-4 h-4 mr-2" />
                 )}
-                {tradeType === "buy" ? "提交买单" : "提交卖单"}
+                {!isConnected ? "Connect Wallet First" : (tradeType === "buy" ? "Submit Buy Order" : "Submit Sell Order")}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>确认订单</AlertDialogTitle>
+                <AlertDialogTitle>Confirm Order</AlertDialogTitle>
                 <AlertDialogDescription className="space-y-2">
-                  <div>交易类型: <strong>{tradeType === "buy" ? "买入" : "卖出"}</strong></div>
-                  <div>信用类型: <strong>{creditType}</strong></div>
-                  <div>数量: <strong>{amount} 吨CO2</strong></div>
-                  <div>预估价格: <strong>${estimatedPrice}</strong></div>
+                  <div>Trade Type: <strong>{tradeType === "buy" ? "Buy" : "Sell"}</strong></div>
+                  <div>Credit Type: <strong>{creditType}</strong></div>
+                  <div>Amount: <strong>{amount} tons CO2</strong></div>
+                  <div>Estimated Price: <strong>${estimatedPrice}</strong></div>
                   <div className="text-muted-foreground text-sm mt-2">
-                    实际价格将在结算后公布，采用加密定价保护您的隐私。
+                    Your order will be encrypted using FHE technology and submitted to the blockchain. 
+                    All sensitive data (amount, price) will be encrypted and only revealed after settlement.
                   </div>
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>取消</AlertDialogCancel>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction 
                   onClick={handlePlaceOrder}
                   className="bg-gradient-earth text-primary-foreground hover:opacity-90"
                 >
-                  确认提交
+                  Confirm Submit
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import WalletConnect from "@/components/WalletConnect";
 import TradingInterface from "@/components/TradingInterface";
 import MarketOverview from "@/components/MarketOverview";
+import CreateCarbonCredit from "@/components/CreateCarbonCredit";
 import { Shield, Leaf, Eye } from "lucide-react";
 import earthHero from "@/assets/earth-hero.jpg";
 
@@ -86,8 +87,23 @@ const Index = () => {
         <MarketOverview />
       </section>
 
-      {/* Trading Interface */}
+      {/* Create Carbon Credits */}
       <section className="py-16 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-foreground mb-4">Create Encrypted Carbon Credits</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Create and list carbon credits with FHE encryption to protect sensitive pricing and volume data
+            </p>
+          </div>
+          <div className="max-w-4xl mx-auto">
+            <CreateCarbonCredit />
+          </div>
+        </div>
+      </section>
+
+      {/* Trading Interface */}
+      <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-foreground mb-4">Trade with Privacy</h2>
